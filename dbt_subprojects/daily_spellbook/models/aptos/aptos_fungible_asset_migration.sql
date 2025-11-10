@@ -1,20 +1,22 @@
 {{ config(
     schema = 'aptos_fungible_asset',
-    alias = 'migrations',
+    alias = 'migration',
     materialized = 'incremental',
     file_format = 'delta',
     incremental_strategy = 'merge',
-    incremental_predicates = [incremental_predicate('DBT_INTERNAL_DEST.block_time')],
     unique_key = ['asset_type_v2'],
 ) }}
--- TODO: change into one time table after coins are no longer allowed to be created
 
+-- coin to FA mapping is a deterministic lookup using SHA3
+-- however, SHA3 is not implemented in SQL so instead lookup using resource
+-- For python code using SHA3, see 'Finding migrated fungible assets' section of
+-- https://medium.com/aptoslabs/data-analyst-guide-to-aptos-defi-swaps-pt2-e343ac6be84e 
 SELECT
     -- latest
     tx_version,
     block_date,
     block_time,
-    date(date_trunc('month', block_time)) as block_month,
+    DATE(date_trunc('month', block_time)) as block_month,
     --
     '0x' || LPAD(lower(to_hex(move_address)), 64, '0') AS asset_type_v2,
     '0x' || LPAD(LTRIM(json_extract_scalar(move_data, '$.type.account_address'), '0x'), 64, '0') || '::' ||
